@@ -1,0 +1,132 @@
+{% extends 'MoneyTrail/base.html' %}
+{% load static %}
+
+{% block title %}MoneyTrail Transaction Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center mb-4 text-primary">💰 MoneyTrail Transaction Tracker</h1>
+
+    <!-- Balance Summary Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body text-center">
+            <h5 class="card-title text-muted">Current Total Balance</h5>
+            <h2 class="card-text display-4 font-weight-bold" id="totalBalanceDisplay">
+                $0.00
+            </h2>
+            <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-3">
+                <button class="btn btn-outline-primary me-md-2" id="loadApiTransactionsBtn">
+                    <i class="fas fa-sync-alt"></i> Load Transactions from API
+                </button>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTransactionModal">
+                    <i class="fas fa-plus-circle"></i> Add New Transaction
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Transactions Section -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-light py-3">
+            <h5 class="mb-0"><i class="fas fa-filter me-2"></i> Filter Transactions</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="filterType" class="form-label">Transaction Type</label>
+                    <select class="form-select rounded-pill" id="filterType">
+                        <option value="">All</option>
+                        <option value="deposit">Deposit</option>
+                        <option value="expense">Expense</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="filterStartDate" class="form-label">Start Date</label>
+                    <input type="date" class="form-control rounded-pill" id="filterStartDate">
+                </div>
+                <div class="col-md-4">
+                    <label for="filterEndDate" class="form-label">End Date</label>
+                    <input type="date" class="form-control rounded-pill" id="filterEndDate">
+                </div>
+                <div class="col-md-4">
+                    <label for="filterDescription" class="form-label">Description (contains)</label>
+                    <input type="text" class="form-control rounded-pill" id="filterDescription" placeholder="e.g., 'rent', 'salary'">
+                </div>
+                <div class="col-md-4">
+                    <label for="filterCode" class="form-label">Transaction Code (TRN-XXXX)</label>
+                    <input type="text" class="form-control rounded-pill" id="filterCode" placeholder="e.g., 'TRN-0025' or '25'">
+                </div>
+                <div class="col-12 text-center mt-3">
+                    <button id="applyFiltersBtn" class="btn btn-success rounded-pill me-2"><i class="fas fa-check me-2"></i> Apply Filters</button>
+                    <button id="clearFiltersBtn" class="btn btn-secondary rounded-pill"><i class="fas fa-times me-2"></i> Clear Filters</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Filter Transactions Section -->
+
+    <!-- Balance Over Time Chart Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i> Balance Over Time</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="balanceChart"></canvas>
+        </div>
+    </div>
+    <!-- End Balance Over Time Chart Section -->
+
+    <!-- All Transactions Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">All Transactions</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Description</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Running Balance</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionsTableBody">
+                        <!-- Transactions will be loaded here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="emptyState" class="text-center text-muted mt-3" style="display: none;">
+                <p>No transactions found. Start by loading from the API or adding manually!</p>
+            </div>
+            <div class="d-grid gap-2 mt-3" id="loadMoreContainer">
+                <button class="btn btn-outline-secondary" id="loadMoreBtn" style="display: none;">Load More</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include Modals as separate partials -->
+{% include 'MoneyTrail/_add_transaction_modal.html' %}
+{% include 'MoneyTrail/_edit_transaction_modal.html' %}
+{% include 'MoneyTrail/_delete_confirmation_modal.html' %}
+{% include 'MoneyTrail/_message_box_modal.html' %}
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js (required) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+<!--  Luxon and Chart.js date adapter -->
+<script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+
+<!-- Custom logic (script.js) -->
+<script src="{% static 'MoneyTrail/js/script.js' %}"></script>
+{% endblock %}
+

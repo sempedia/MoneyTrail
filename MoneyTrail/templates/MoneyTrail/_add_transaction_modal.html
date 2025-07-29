@@ -1,0 +1,40 @@
+<!-- Add Transaction Modal -->
+<div class="modal fade" id="addTransactionModal" tabindex="-1" aria-labelledby="addTransactionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addTransactionForm">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="addTransactionModalLabel">Add New Transaction</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- This is the red alert box for displaying errors -->
+                    <div id="addTransactionError" class="alert alert-danger" style="display: none;"></div>
+                    <div class="mb-3">
+                        <label for="transactionDescription" class="form-label">Description</label>
+                        <input type="text" class="form-control rounded-pill" id="transactionDescription" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="transactionAmount" class="form-label">Amount</label>
+                        <input type="number" step="0.01" class="form-control rounded-pill" id="transactionAmount" required min="0.01">
+                    </div>
+                    <div class="mb-3">
+                        <label for="transactionDate" class="form-label">Date</label>
+                        <input type="date" class="form-control rounded-pill" id="transactionDate" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="transactionType" class="form-label">Transaction Type</label>
+                        <select class="form-select rounded-pill" id="transactionType" required>
+                            <option value="deposit">Deposit</option>
+                            <option value="expense">Expense</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Discard</button>
+                    <button type="submit" class="btn btn-primary rounded-pill">Add Transaction</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

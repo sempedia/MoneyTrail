@@ -1,0 +1,147 @@
+# This workflow defines a Continuous Integration (CI) and Continuous Deployment (CD) pipeline
+# for your MoneyTrail Django application using GitHub Actions.
+
+name: CI/CD Pipeline
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on pushes to the 'master' branch
+  push:
+    branches:
+      - master
+  # Triggers the workflow on pull requests targeting the 'master' branch
+  pull_request:
+    branches:
+      - master
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # The 'build-and-test' job for Continuous Integration
+  build-and-test:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Environment variables for the job
+    env:
+      # These variables are needed for Django settings and database connection during tests
+      # In a real scenario, for production, these would be GitHub Secrets for security.
+      # For CI, we use dummy values or the defaults from .env.example
+      DJANGO_SECRET_KEY: ci-secret-key-for-testing
+      DJANGO_DEBUG: True
+      POSTGRES_DB: test_moneytrail_db # Use a separate DB for tests
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_HOST: localhost # For CI, the DB will run on localhost (the runner itself)
+      POSTGRES_PORT: 5432
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Set up Python environment
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11' # Match your Dockerfile Python version
+
+      # Install Python dependencies from requirements.txt
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      # Set up Node.js for potential frontend linting/build tools (if you add them later)
+      # Not strictly necessary for this project's current frontend, but good for future expansion.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Start PostgreSQL service for testing
+      - name: Start PostgreSQL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          sudo systemctl start postgresql
+          sudo -u postgres psql -c "CREATE DATABASE ${POSTGRES_DB};"
+          sudo -u postgres psql -c "CREATE USER ${POSTGRES_USER} WITH PASSWORD '${POSTGRES_PASSWORD}';"
+          sudo -u postgres psql -c "ALTER ROLE ${POSTGRES_USER} SET client_encoding TO 'utf8';"
+          sudo -u postgres psql -c "ALTER ROLE ${POSTGRES_USER} SET default_transaction_isolation TO 'read committed';"
+          sudo -u postgres psql -c "ALTER ROLE ${POSTGRES_USER} SET timezone TO 'UTC';"
+          sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE ${POSTGRES_DB} TO ${POSTGRES_USER};"
+
+      # Wait for PostgreSQL to be ready (optional, but good practice)
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5432 -U ${POSTGRES_USER} -d ${POSTGRES_DB}; do
+            echo "Waiting for PostgreSQL to start..."
+            sleep 2
+          done
+          echo "PostgreSQL is ready!"
+
+      # Run Django migrations for tests
+      - name: Run Django migrations
+        run: python manage.py migrate
+
+      # Run Django tests
+      - name: Run Django tests
+        run: python manage.py test MoneyTrail
+
+      # Build Docker images (only if tests pass)
+      # This step ensures that we only build images for code that has passed tests.
+      - name: Build Docker images
+        run: docker-compose build
+
+  # The 'deploy' job for Continuous Deployment (placeholder)
+  # This job will only run if the 'build-and-test' job succeeds.
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-test # This job depends on 'build-and-test' completing successfully
+    if: github.ref == 'refs/heads/master' # Only deploy on pushes to master
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # --- Placeholder for Deployment Steps ---
+      # This section is where you would add steps to:
+      # 1. Log in to your container registry (e.g., Docker Hub, AWS ECR).
+      #    Example for Docker Hub:
+      #    - name: Login to Docker Hub
+      #      uses: docker/login-action@v3
+      #      with:
+      #        username: ${{ secrets.DOCKER_USERNAME }}
+      #        password: ${{ secrets.DOCKER_PASSWORD }}
+      #
+      # 2. Tag and push your Docker images to the registry.
+      #    Example:
+      #    - name: Push Docker images
+      #      run: |
+      #        docker tag web_image_name your_docker_username/moneytrail-web:latest
+      #        docker push your_docker_username/moneytrail-web:latest
+      #
+      # 3. Deploy to your cloud provider (e.g., AWS). This is highly dependent on your AWS setup
+      #    (EC2, ECS, EKS, Elastic Beanstalk, etc.).
+      #    Examples might include:
+      #    - Updating an ECS service definition
+      #    - SSHing into an EC2 instance and pulling the new image
+      #    - Using AWS CLI commands
+      #    - Using AWS Elastic Beanstalk deploy action
+      #
+      #    Example (conceptual - requires AWS setup):
+      #    - name: Configure AWS credentials
+      #      uses: aws-actions/configure-aws-credentials@v4
+      #      with:
+      #        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #        aws-region: us-east-1
+      #
+      #    - name: Deploy to AWS ECS (example)
+      #      run: |
+      #        aws ecs update-service --cluster your-ecs-cluster --service your-ecs-service --force-new-deployment
+      #
+      - name: Deployment Placeholder
+        run: echo "Deployment steps would go here. Configure AWS credentials, push images to registry, and deploy to AWS."

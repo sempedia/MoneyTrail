@@ -1,0 +1,43 @@
+# Define the services (containers) that make up your application
+services:
+  # The web service represents your Django application
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    # The command is now defined in the Dockerfile's ENTRYPOINT and CMD.
+    # No need to override it here for the default startup.
+    # command: >
+    #   /app/wait_for_it.sh db:5432 -- /bin/sh -c "
+    #   python manage.py migrate &&
+    #   python manage.py collectstatic --noinput &&
+    #   python manage.py runserver 0.0.0.0:8000
+    #   "
+
+  # The db service represents your PostgreSQL database
+  db:
+    image: postgres:13
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+# Define named volumes for data persistence
+volumes:
+  postgres_data:

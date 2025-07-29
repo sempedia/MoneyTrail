@@ -1,0 +1,35 @@
+<!-- Message Box Modal -->
+<div class="modal fade" id="messageBoxModal" tabindex="-1" aria-labelledby="messageBoxModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" id="messageBoxModalHeader">
+                <h5 class="modal-title" id="messageBoxModalLabel">Message</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="messageBoxModalBody">
+                <!-- Message content will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Function to show the message box modal
+    function showMessageBox(title, message, isError = false) {
+        const modal = new bootstrap.Modal(document.getElementById('messageBoxModal'));
+        document.getElementById('messageBoxModalLabel').innerText = title;
+        document.getElementById('messageBoxModalBody').innerText = message;
+        const header = document.getElementById('messageBoxModalHeader');
+        if (isError) {
+            header.classList.remove('bg-success');
+            header.classList.add('bg-danger', 'text-white');
+        } else {
+            header.classList.remove('bg-danger');
+            header.classList.add('bg-success', 'text-white');
+        }
+        modal.show();
+    }
+</script>

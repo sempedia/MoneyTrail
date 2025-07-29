@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+.Python
+env/
+venv/
+*.env
+.env
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+htmlcov/
+.ipynb_checkpoints
+.mypy_cache/
+.vscode/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+media/
+
+# Docker
+*.dockerignore
+docker-compose.override.yml
+
+# IDEs
+.idea/
+.project
+.settings/
+.vs/
+*.sublime-project
+*.sublime-workspace
+*.DS_Store
+
+# Node.js (if frontend build tools were used)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# Custom (your request)
+*.txt
+*.zip
+*.webm
