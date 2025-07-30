@@ -89,7 +89,7 @@ class Command(BaseCommand):
                         type=transaction_type,
                         created_at=created_at
                     )
-                    self.stdout.write(self.style.SUCCESS(f'Successfully added API transaction: API-{external_id} - {amount} on {created_at.strftime("%Y-%m-%d")}'))
+                    self.stdout.write(self.style.SUCCESS(f'Successfully added API transaction: API-{external_id} - {amount:.2f} on {created_at.strftime("%Y-%m-%d")}'))
                     added_count += 1
                 else:
                     self.stdout.write(self.style.WARNING(f'Skipping duplicate API transaction: API-{external_id}'))

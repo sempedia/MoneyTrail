@@ -3,7 +3,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view
 from django.views.generic import TemplateView
-from django.db.models import Sum, Q # Import Q for complex lookups
+from django.db.models import Sum, Q, When, F, DecimalField, Value, Case, ExpressionWrapper
 from django.db import transaction as db_transaction # Avoid name conflict with model
 from django.utils import timezone
 from datetime import timedelta, date
@@ -11,7 +11,7 @@ from decimal import Decimal
 import pytz # pip install pytz for timezone handling
 from django.conf import settings
 from django.core.management import call_command # For fetch_external_transactions_api
-
+from django.db.models.functions import Coalesce
 from .models import Transaction
 from .serializers import TransactionSerializer
 
@@ -149,6 +149,9 @@ class TransactionViewSet(viewsets.ModelViewSet):
             'balance_history': balance_history # Include balance history for the chart
         })
 
+
+
+
     @db_transaction.atomic
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -164,6 +167,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
         # --- VALIDATIONS ---
         if transaction_type == 'expense':
             transaction_date = created_at.date()
+
+            # Daily expense limit check
             daily_expenses_count = Transaction.objects.filter(
                 type='expense',
                 created_at__date=transaction_date
@@ -178,8 +183,17 @@ class TransactionViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        if transaction_type == 'expense':
-            current_total_balance = Transaction.objects.aggregate(total=Sum('amount', field="CASE WHEN type='deposit' THEN amount ELSE -amount END"))['total'] or Decimal('0.00')
+            # Sufficient balance check
+            current_total_balance = Transaction.objects.aggregate(
+                total=Coalesce(Sum(
+                    Case(
+                        When(type='deposit', then=F('amount')),
+                        When(type='expense', then=ExpressionWrapper(F('amount') * Decimal('-1'), output_field=DecimalField())),
+                        default=Value(0),
+                        output_field=DecimalField()
+                    )
+                ), Value(0, output_field=DecimalField()))
+            )['total'] or Decimal('0.00')
 
             print(f"DEBUG: Checking sufficient balance. Current total balance: {current_total_balance}, Attempted expense: {amount}")
 
@@ -197,7 +211,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         total_balance_after_create, transactions_with_balance_after_create, balance_history_after_create = self._recalculate_balances()
 
         return Response({
-            'total_balance': total_balance_after_create,
+            'total_balance': transactions_with_balance_after_create[0].running_balance if transactions_with_balance_after_create else Decimal('0.00'),
             'new_transaction': serializer.data,
             'transactions': self.get_serializer(transactions_with_balance_after_create[:10], many=True).data,
             'balance_history': balance_history_after_create
@@ -224,8 +238,14 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
         if transaction_type == 'expense':
             balance_excluding_current = Transaction.objects.exclude(pk=instance.pk).aggregate(
-                total=Sum('amount', field="CASE WHEN type='deposit' THEN amount ELSE -amount END")
-            )['total'] or Decimal('0.00')
+            total=Sum(
+                Case(
+                    When(type='deposit', then=F('amount')),
+                    When(type='expense', then=-F('amount')),
+                    output_field=DecimalField()
+                )
+            )
+        )['total'] or Decimal('0.00')
 
             potential_new_balance = balance_excluding_current - amount
 
@@ -255,8 +275,10 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 )
 
         self.perform_update(serializer)
+        print(f"DEBUG: Updated transaction amount: {serializer.instance.amount}, type: {serializer.instance.type}")
 
         total_balance_after_update, transactions_with_balance_after_update, balance_history_after_update = self._recalculate_balances()
+        print("DEBUG: _recalculate_balances total:", total_balance_after_update)
 
         return Response({
             'total_balance': total_balance_after_update,
@@ -264,6 +286,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
             'transactions': self.get_serializer(transactions_with_balance_after_update[:10], many=True).data,
             'balance_history': balance_history_after_update
         })
+
 
     @db_transaction.atomic
     def destroy(self, request, *args, **kwargs):
