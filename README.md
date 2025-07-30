@@ -2,18 +2,22 @@
 
 This project is a full-stack web application designed to track financial transactions. It's built with Django (backend), Django REST Framework (API), PostgreSQL (database), and a user-friendly frontend using Bootstrap 5. The entire application is containerized using Docker Compose for easy setup and local development, now simplified with a `Makefile`.
 
+---
+
 ## ✨ Features
 
-* **Transaction Management:** Add, view, edit, and delete transactions (editing/deleting local transactions is an optional feature, currently not implemented in UI but supported by API).
+* **Transaction Management:** Users can **add, view, edit, and delete** local transactions directly through the UI.
 * **Running Balance Display:** Shows a running balance for each transaction, calculating the total up to that transaction's date.
-* **Current Total Balance:** Displays the overall current balance.
+* **Current Total Balance:** Displays the overall current balance, dynamically updating with changes.
 * **Transaction Import from External API:** Users can import transactions from a mock API into the local database.
 * **Manual Transaction Addition:** Users can add new transactions via a Bootstrap modal form.
 * **Robust Validations:**
     * Amount must be positive.
     * Adding an expense cannot result in a negative total balance.
-    * Limit of 200 expenses per day.
-* **Pagination:** Loads 10 transactions at a time with a "Load More" option.
+    * **Strict Limit of 2 expenses per day.**
+* **Pagination:** Loads 10 transactions at a time with a "Load More" option for efficient data display.
+* **Basic Filtering:** Users can filter transactions by **type, date range, description (contains), and transaction code (TRN-XXXX)**.
+* **Balance Over Time Chart:** Displays a visual representation of the account balance history using **Chart.js**.
 * **Responsive UI:** Built with Bootstrap 5 for optimal viewing on various devices.
 * **RESTful API:** A robust API built with Django REST Framework for programmatic access to transaction data.
 * **PostgreSQL Database:** Reliable and scalable data storage.
@@ -21,6 +25,8 @@ This project is a full-stack web application designed to track financial transac
 * **Automated Tests:** Comprehensive tests for models, API endpoints, views, and validations.
 * **Dockerized:** Easy setup and deployment using Docker and Docker Compose, including robust database startup handling.
 * **CI/CD Pipeline (GitHub Actions):** Automated workflows for building, testing, and preparing for deployment.
+
+---
 
 ## 🚀 Getting Started
 
@@ -99,6 +105,8 @@ Make sure you have Docker and Docker Compose installed on your system.
     http://localhost:8000/admin/
     ```
 
+---
+
 ## ⚙️ Makefile Commands
 
 This project includes a `Makefile` to simplify common development tasks. Ensure you are in the project's root directory to run these commands.
@@ -116,12 +124,16 @@ This project includes a `Makefile` to simplify common development tasks. Ensure 
 * `make test`: Runs all automated tests for the `MoneyTrail` app.
 * `make clean`: **Performs a targeted cleanup of Docker resources specific to this project.** This stops containers, removes volumes (data), and removes the Docker image built for this project. It will not affect other Docker containers or images from unrelated projects on your system.
 
+---
+
 ## 📊 Daily Workflow Example
 
 1.  **Start the app:** `make up`
 2.  **Add dummy data (first time or if needed):** `make fetchdata`
 3.  **Access the app:** `http://localhost:8000/`
 4.  **Stop the app:** `make down`
+
+---
 
 ## 🧪 Running Tests
 
@@ -152,6 +164,8 @@ Automated tests are included to ensure the application's functionality. The test
         docker compose exec web python manage.py test MoneyTrail.tests.test_commands
         ```
 
+---
+
 ## 🔄 Application Workflow: Backend (DRF) vs. Frontend (JavaScript)
 
 This application follows a common pattern in modern web development where the backend and frontend are separated, communicating via a RESTful API.
@@ -160,9 +174,9 @@ This application follows a common pattern in modern web development where the ba
 
 * **Role:** DRF's primary role is to build the **RESTful API** on the Django backend. It handles all server-side logic, database interactions, and data serialization.
 * **Key Components:**
-    * **Models (`MoneyTrail/models.py`):** Define the structure of your data (e.g., `Transaction` with fields like `transaction_code`, `amount`, `type`, `created_at`).
-    * **Serializers (`MoneyTrail/serializers.py`):** Convert complex Django model instances into native Python data types (like dictionaries) that can then be easily rendered into JSON (for sending to the frontend) and vice-versa. They also handle data validation for incoming requests.
-    * **ViewSets (`MoneyTrail/views.py` - `TransactionViewSet`):** Provide a set of common operations (Create, Retrieve, Update, Delete - CRUD) for your models. They receive HTTP requests, interact with the database via models, and return responses using serializers.
+    * **Models (`MoneyTrail/models.py`):** Define the structure of your data (e.g., `Transaction` with fields like `api_external_id`, `amount`, `type`, `created_at`).
+    * **Serializers (`MoneyTrail/serializers.py`):** Convert complex Django model instances into native Python data types (like dictionaries) that can then be easily rendered into JSON (for sending to the frontend) and vice-versa. They also handle data validation for incoming requests and **add the `display_code` field to the API response**.
+    * **ViewSets (`MoneyTrail/views.py` - `TransactionViewSet`):** Provide a set of common operations (Create, Retrieve, Update, Delete - CRUD) for your models. They receive HTTP requests, interact with the database via models, and return responses using serializers. They also contain the custom logic for **running balance calculation, daily expense limits, and balance overspending checks**.
     * **URL Routing (`transaction_tracker/urls.py`):** DRF's `DefaultRouter` automatically generates URL patterns for your API endpoints (e.g., `/api/transactions/` for listing/creating, `/api/transactions/<id>/` for retrieving/updating/deleting a specific transaction).
 
 ### JavaScript (in `MoneyTrail/static/MoneyTrail/js/script.js`): The Frontend API Consumer and UI Controller
@@ -170,9 +184,9 @@ This application follows a common pattern in modern web development where the ba
 * **Role:** JavaScript running in the user's web browser is responsible for the entire **user interface (UI)** and dynamic interactions. It does not directly touch the database but communicates with the DRF API.
 * **Key Responsibilities:**
     * **Dynamic UI Rendering:** Populates the HTML table with transaction data fetched from the API.
-    * **User Interaction Handling:** Listens for user actions (e.g., button clicks for "Add," "Load More," "Load from API," form submissions).
-    * **Asynchronous API Calls:** Uses the browser's `fetch` API to send HTTP requests (GET, POST) to the Django REST Framework API endpoints.
-    * **UI Updates:** Processes the JSON responses received from the DRF API and updates the HTML page accordingly, often without requiring a full page reload, providing a smoother user experience.
+    * **User Interaction Handling:** Listens for user actions (e.g., button clicks for "Add," "Load More," "Load from API," form submissions, **applying filters, clearing filters, clicking Edit/Delete buttons**).
+    * **Asynchronous API Calls:** Uses the browser's `fetch` API to send HTTP requests (GET, POST, PUT, DELETE) to the Django REST Framework API endpoints.
+    * **UI Updates:** Processes the JSON responses received from the DRF API and updates the HTML page accordingly, often without requiring a full page reload, providing a smoother user experience. This includes **updating the transaction table, the total balance, and rendering/updating the balance over time chart using Chart.js**.
 
 ### Workflow Summary:
 
@@ -180,14 +194,15 @@ This application follows a common pattern in modern web development where the ba
     * User navigates to `http://localhost:8000/`.
     * Django's `TransactionListView` renders `transaction_list.html`.
     * The browser loads HTML, CSS, and `script.js`.
-    * `script.js` immediately sends an asynchronous `GET` request to the DRF API endpoint (`/api/transactions/`) to fetch existing transactions.
+    * `script.js` immediately sends an asynchronous `GET` request to the DRF API endpoint (`/api/transactions/`) to fetch existing transactions, **including historical balance data for the chart**.
 
-2.  **Data Retrieval (GET Request):**
+2.  **Data Retrieval (GET Request) & Filtering:**
     * The DRF `TransactionViewSet` receives the `GET` request.
+    * It applies any active filters (by type, date range, description, or code) from query parameters.
     * It queries the PostgreSQL database for `Transaction` objects, calculates running balances, and applies pagination.
-    * `TransactionSerializer` converts these objects into JSON.
+    * `TransactionSerializer` converts these objects into JSON, **adding the `display_code` and `running_balance` fields**.
     * DRF sends the JSON response back to the browser.
-    * `script.js` receives the JSON, then uses it to dynamically build and display the transaction table and update the total balance.
+    * `script.js` receives the JSON, then uses it to dynamically build and display the transaction table, update the total balance, and **render/update the balance over time chart**.
 
 3.  **User Action (e.g., Adding a Transaction):**
     * User fills out the "Add New Transaction" form in the modal and clicks "Add Transaction."
@@ -198,19 +213,35 @@ This application follows a common pattern in modern web development where the ba
 4.  **Data Creation (POST Request) & Validations:**
     * The DRF `TransactionViewSet` receives the `POST` request.
     * `TransactionSerializer` validates the incoming JSON.
-    * Custom logic in the `create` method performs additional validations (positive amount, sufficient balance, daily expense limit).
-    * If validations pass, the new `Transaction` is saved to the PostgreSQL database with a generated `transaction_code`.
+    * Custom logic in the `create` method performs additional validations (positive amount, sufficient balance, **daily expense limit of 2 per day**).
+    * If validations pass, the new `Transaction` is saved to the PostgreSQL database.
     * DRF sends a `201 Created` HTTP response (including the newly created transaction's data and updated total balance) back to the browser.
-    * `script.js` receives the success response, displays a success message, closes the modal, clears the form, and reloads the transactions to update the UI. If validations fail, it displays the error message in the modal.
+    * `script.js` receives the success response, displays a success message, closes the modal, clears the form, and **reloads the transactions (respecting any active filters) and updates the chart** to reflect the changes. If validations fail, it displays the error message in the modal.
 
-5.  **Importing External Transactions:**
+5.  **User Action (e.g., Editing a Transaction):**
+    * User clicks **"Edit"** next to a transaction, opening a pre-filled modal.
+    * User modifies data and clicks "Save Changes."
+    * `script.js` sends an asynchronous `PUT` or `PATCH` request to the DRF API endpoint (`/api/transactions/<id>/`) with the updated JSON data.
+    * The DRF `TransactionViewSet`'s `update` method processes the request, performs validations (e.g., positive amount, balance check for expenses, **daily expense limit if type/date changes**), and updates the database.
+    * On success, `script.js` **reloads the transactions (respecting any active filters) and updates the chart**.
+
+6.  **User Action (e.g., Deleting a Transaction):**
+    * User clicks **"Delete"** next to a transaction, opening a confirmation modal.
+    * User confirms deletion.
+    * `script.js` sends an asynchronous `DELETE` request to the DRF API endpoint (`/api/transactions/<id>/`).
+    * The DRF `TransactionViewSet`'s `destroy` method deletes the transaction from the database.
+    * On success, `script.js` **reloads the transactions (respecting any active filters) and updates the chart**.
+
+7.  **Importing External Transactions:**
     * User clicks "Load Transactions from API".
     * `script.js` sends a `POST` request to `/api/fetch-external-transactions/`.
     * The `fetch_external_transactions_api` view in Django calls the `fetch_transactions` management command.
     * The command fetches data from `https://685efce5c55df675589d49df.mockapi.io/api/v1/transactions` and saves unique transactions to the database.
-    * On success, `script.js` reloads the transaction list.
+    * On success, `script.js` **reloads the transaction list and updates the chart**.
 
 This architecture ensures a clear separation of responsibilities, making the application modular, scalable, and easier to develop and maintain.
+
+---
 
 ## 📝 Project Structure
 
@@ -253,9 +284,9 @@ moneytrail_project/
 │   └── MoneyTrail/
 │       ├── base.html                     # Base template for common structure
 │       ├── transaction_list.html         # Main page content, extends base.html
-│       ├── _add_transaction_form.html    # Partial: Form to add new transactions (integrated into transaction_list.html)
-│       ├── _edit_transaction_modal.html  # Partial: Modal for editing transactions (optional, not implemented)
-│       ├── _delete_confirmation_modal.html # Partial: Modal for confirming deletion (optional, not implemented)
+│       ├── _add_transaction_modal.html   # Partial: Modal for adding new transactions
+│       ├── _edit_transaction_modal.html  # Partial: Modal for editing transactions
+│       ├── _delete_confirmation_modal.html # Partial: Modal for confirming deletion
 │       └── _message_box_modal.html       # Partial: Custom alert message box
 ├── .env.example                # Example environment variables file
 ├── Dockerfile                  # Docker instructions for building the Django app image
@@ -264,26 +295,34 @@ moneytrail_project/
 └── .gitignore                  # Files/directories to ignore in Git
 
 
+---
+
 ## 💡 Assumptions and Clarifications
 
 * **External API Fetch:** The "Load Transactions from API" button on the UI triggers a Django endpoint that runs the `fetch_transactions` management command. This command fetches data from `https://685efce5c55df675589d49df.mockapi.io/api/v1/transactions`. It handles duplicate `id`s by skipping them.
-* **Transaction Code Generation:** For manually added transactions, a unique `transaction_code` is generated using a UUID prefix (e.g., `TXN-ABCDEF12`).
+* **Transaction Code Generation:** For all transactions (both manually added and API imported), the display code will be generated as `TRN-XXXX` where `XXXX` is the zero-padded internal Django `id` of the transaction. The `api_external_id` field is stored for uniqueness but does not directly form the `TRN-XXXX` display code.
 * **Amount Handling:** Amounts are stored as positive decimals in the database. The `type` field (`deposit` or `expense`) determines how they are displayed (e.g., `+$X.XX` or `-$X.XX`) and how they affect the running balance.
-* **Running Balance Calculation:** The running balance is calculated on the backend within the `TransactionViewSet`'s `list` method. It sums all transactions up to each transaction's date, ordered chronologically.
+* **Running Balance Calculation:** The running balance is calculated on the backend within the `TransactionViewSet`'s `_recalculate_balances` method. This method internally orders all transactions chronologically (oldest to newest) to ensure correct running balance calculation. The final list returned to the frontend is then reversed (newest to oldest). **The overall `total_balance` is calculated by summing all transactions directly from the database to ensure accuracy.**
 * **Pagination:** Basic pagination (10 items per page) is implemented. The "Load More" button fetches the next page from the database.
 * **Authentication:** For simplicity and to meet the core requirements, the API endpoints are publicly accessible (`AllowAny` permission in DRF settings). In a production application, you would implement proper authentication and authorization (e.g., Token Authentication, JWT).
-* **Frontend Scope:** The frontend provides core CRUD operations (Create, Read, Delete via `make clean`). Editing and deleting individual local transactions via the UI are optional "nice-to-have" features not fully implemented in this MVP's UI, but the DRF API supports them.
+* **Frontend Scope:** The frontend provides core CRUD operations (Create, Read, Update, Delete).
 * **Error Handling (Frontend):** Server-side validation errors and general API errors are displayed in the modal or a message box.
 * **Static Files (Development vs. Production):** While CDNs are used for external libraries in development for convenience, for production deployments, it's recommended to serve all static files (including Bootstrap, etc.) locally after running `collectstatic`.
 * **Docker Compose Command:** The `command` in `docker-compose.yml` is now simplified to only run the Django server, as `makemigrations`, `migrate`, and `collectstatic` are handled by the `make install` command.
+
+---
 
 ## 🤝 Contributing
 
 Feel free to fork this repository, open issues, or submit pull requests with improvements.
 
+---
+
 ## 📄 License
 
 This project is open source and available under the [MIT License](LICENSE).
+
+---
 
 ## 🧑‍💻 Author
 
